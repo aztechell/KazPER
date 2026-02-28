@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
 const ALL_LOCALES = ["ru", "kk", "en"];
 const ALL_GENDERS = ["M", "F", "B"];
 const VALID_GENDERS = new Set(ALL_GENDERS);
+const VALID_GENDER_MODES = new Set(["male", "female", "both"]);
 const SWIPE_THRESHOLD_PX = 96;
 const SWIPE_OUT_DISTANCE_PX = 460;
 
@@ -40,6 +41,7 @@ const state = {
   byId: new Map(),
   /** @type {Locale} */
   activeLocale: "ru",
+  activeGenderMode: "both",
   /** @type {Set<Gender>} */
   activeGenders: new Set(ALL_GENDERS),
   /** @type {NameEntry[]} */
@@ -76,7 +78,7 @@ function cacheRefs() {
   refs.retryLoadBtn = document.getElementById("retryLoadBtn");
   refs.loadWarning = document.getElementById("loadWarning");
 
-  refs.genderChecks = Array.from(document.querySelectorAll("input[type='checkbox'][value]"));
+  refs.genderModeRadios = Array.from(document.querySelectorAll("input[name='genderMode']"));
   refs.localeRadios = Array.from(document.querySelectorAll("input[name='locale']"));
 
   refs.btnUndo = document.getElementById("btnUndo");
@@ -110,9 +112,9 @@ function bindEvents() {
     loadNames();
   });
 
-  refs.genderChecks.forEach((input) => {
+  refs.genderModeRadios.forEach((input) => {
     input.addEventListener("change", () => {
-      handleGenderFilterChange();
+      handleGenderModeChange();
     });
   });
 
@@ -129,6 +131,10 @@ function bindEvents() {
   refs.btnExportCsv.addEventListener("click", () => exportCsv());
   refs.btnExportJson.addEventListener("click", () => exportJson());
   refs.btnReset.addEventListener("click", () => resetAll());
+  refs.badList.addEventListener("click", (event) => handleListTransferClick(event, "bad"));
+  refs.goodList.addEventListener("click", (event) => handleListTransferClick(event, "good"));
+  refs.badList.addEventListener("keydown", (event) => handleListTransferKeydown(event, "bad"));
+  refs.goodList.addEventListener("keydown", (event) => handleListTransferKeydown(event, "good"));
 
   refs.cardNotice.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-action]");
@@ -186,15 +192,14 @@ async function loadNames() {
   }
 }
 
-function handleGenderFilterChange() {
-  const next = new Set();
-  refs.genderChecks.forEach((input) => {
-    if (input.checked && VALID_GENDERS.has(input.value)) {
-      next.add(input.value);
-    }
-  });
+function handleGenderModeChange() {
+  const selected = refs.genderModeRadios.find((radio) => radio.checked);
+  if (!selected || !VALID_GENDER_MODES.has(selected.value)) {
+    return;
+  }
 
-  state.activeGenders = next;
+  state.activeGenderMode = selected.value;
+  state.activeGenders = getGendersForMode(state.activeGenderMode);
   persistPrefs();
   rebuildDeck();
 }
@@ -309,7 +314,8 @@ function resetAll() {
   }
 
   state.activeLocale = "ru";
-  state.activeGenders = new Set(ALL_GENDERS);
+  state.activeGenderMode = "both";
+  state.activeGenders = getGendersForMode(state.activeGenderMode);
   state.goodKeys = new Set();
   state.badKeys = new Set();
   state.history = [];
@@ -560,11 +566,11 @@ function renderCounts() {
 }
 
 function renderLists() {
-  renderList(refs.badList, refs.badEmpty, state.badKeys);
-  renderList(refs.goodList, refs.goodEmpty, state.goodKeys);
+  renderList(refs.badList, refs.badEmpty, state.badKeys, "bad");
+  renderList(refs.goodList, refs.goodEmpty, state.goodKeys, "good");
 }
 
-function renderList(listElement, emptyElement, idSet) {
+function renderList(listElement, emptyElement, idSet, bucket) {
   listElement.textContent = "";
   const entries = [];
 
@@ -586,6 +592,10 @@ function renderList(listElement, emptyElement, idSet) {
   entries.forEach((entry) => {
     const listItem = document.createElement("li");
     listItem.className = "pick-item";
+    listItem.dataset.id = entry.id;
+    listItem.dataset.bucket = bucket;
+    listItem.setAttribute("role", "button");
+    listItem.tabIndex = 0;
 
     const nameSpan = document.createElement("span");
     nameSpan.className = "pick-name";
@@ -601,6 +611,50 @@ function renderList(listElement, emptyElement, idSet) {
   });
 
   listElement.appendChild(fragment);
+}
+
+function handleListTransferClick(event, fromBucket) {
+  const listItem = event.target.closest(".pick-item[data-id]");
+  if (!listItem) {
+    return;
+  }
+
+  transferPickedName(listItem.dataset.id, fromBucket);
+}
+
+function handleListTransferKeydown(event, fromBucket) {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+
+  const listItem = event.target.closest(".pick-item[data-id]");
+  if (!listItem) {
+    return;
+  }
+
+  event.preventDefault();
+  transferPickedName(listItem.dataset.id, fromBucket);
+}
+
+function transferPickedName(id, fromBucket) {
+  if (!id || !state.byId.has(id)) {
+    return;
+  }
+
+  const inBad = state.badKeys.has(id);
+  const inGood = state.goodKeys.has(id);
+  if (!inBad && !inGood) {
+    return;
+  }
+
+  if (fromBucket === "bad") {
+    assignBucket(id, "good");
+  } else {
+    assignBucket(id, "bad");
+  }
+
+  persistChoices();
+  render();
 }
 
 function renderCard() {
@@ -625,7 +679,7 @@ function renderCard() {
   if (state.deck.length === 0) {
     refs.cardTag.textContent = "Empty";
     refs.cardName.textContent = "No names match these filters";
-    refs.cardMeta.textContent = "Select at least one gender checkbox to continue.";
+    refs.cardMeta.textContent = "Try changing gender or format filters.";
     refs.cardNotice.textContent = "";
     return;
   }
@@ -639,7 +693,7 @@ function renderCard() {
     return;
   }
 
-  refs.cardTag.textContent = `${current.gender} • ${state.activeLocale.toUpperCase()}`;
+  refs.cardTag.textContent = `${current.gender} | ${state.activeLocale.toUpperCase()}`;
   refs.cardName.textContent = current[state.activeLocale];
   refs.cardMeta.textContent = `KK: ${current.kk} | RU: ${current.ru} | EN: ${current.en}`;
   refs.cardNotice.textContent = `${state.deck.length - state.deckIndex - 1} names remaining in this deck.`;
@@ -717,6 +771,12 @@ function hydratePrefs() {
     state.activeLocale = persisted.locale;
   }
 
+  if (typeof persisted.genderMode === "string" && VALID_GENDER_MODES.has(persisted.genderMode)) {
+    state.activeGenderMode = persisted.genderMode;
+    state.activeGenders = getGendersForMode(state.activeGenderMode);
+    return;
+  }
+
   if (Array.isArray(persisted.genders)) {
     const nextGenders = new Set();
     persisted.genders.forEach((gender) => {
@@ -724,7 +784,9 @@ function hydratePrefs() {
         nextGenders.add(gender);
       }
     });
-    state.activeGenders = nextGenders;
+    const inferredMode = inferGenderModeFromSet(nextGenders);
+    state.activeGenderMode = inferredMode;
+    state.activeGenders = getGendersForMode(inferredMode);
   }
 }
 
@@ -776,6 +838,7 @@ function sanitizeChoiceSets() {
 function persistPrefs() {
   writeJsonStorage(STORAGE_KEYS.prefs, {
     locale: state.activeLocale,
+    genderMode: state.activeGenderMode,
     genders: Array.from(state.activeGenders)
   });
 }
@@ -788,8 +851,8 @@ function persistChoices() {
 }
 
 function syncFilterControlsFromState() {
-  refs.genderChecks.forEach((input) => {
-    input.checked = state.activeGenders.has(input.value);
+  refs.genderModeRadios.forEach((input) => {
+    input.checked = input.value === state.activeGenderMode;
   });
 
   refs.localeRadios.forEach((input) => {
@@ -985,6 +1048,30 @@ function makeEntryId(kk, ru, en, gender) {
 
 function normalizeText(value) {
   return value.trim().toLocaleLowerCase("ru-RU").normalize("NFKC");
+}
+
+function getGendersForMode(mode) {
+  if (mode === "male") {
+    return new Set(["M", "B"]);
+  }
+
+  if (mode === "female") {
+    return new Set(["F", "B"]);
+  }
+
+  return new Set(ALL_GENDERS);
+}
+
+function inferGenderModeFromSet(genderSet) {
+  if (genderSet.has("M") && !genderSet.has("F")) {
+    return "male";
+  }
+
+  if (genderSet.has("F") && !genderSet.has("M")) {
+    return "female";
+  }
+
+  return "both";
 }
 
 function downloadTextFile(fileName, content, mimeType) {

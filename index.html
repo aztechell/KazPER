@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>KazPER Name Picker</title>
+  <title>Child Name Picker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
@@ -12,9 +12,7 @@
 <body>
   <main class="app-shell">
     <header class="hero">
-      <p class="eyebrow">KazPER</p>
       <h1>Child Name Picker</h1>
-      <p class="hero-copy">Sort names fast: left for bad, right for good.</p>
     </header>
 
     <section id="errorBanner" class="banner banner-error hidden" role="alert">
@@ -27,19 +25,13 @@
     <section class="toolbar" aria-label="Filters and actions">
       <div class="toolbar-block">
         <p class="block-title">Gender</p>
-        <div class="check-row">
-          <label class="check-pill">
-            <input id="genderM" type="checkbox" value="M" checked>
-            <span>Male (M)</span>
-          </label>
-          <label class="check-pill">
-            <input id="genderF" type="checkbox" value="F" checked>
-            <span>Female (F)</span>
-          </label>
-          <label class="check-pill">
-            <input id="genderB" type="checkbox" value="B" checked>
-            <span>Both (B)</span>
-          </label>
+        <div class="segment-control segment-control-gender" role="radiogroup" aria-label="Gender mode">
+          <input id="genderMale" type="radio" name="genderMode" value="male">
+          <label for="genderMale">Male</label>
+          <input id="genderFemale" type="radio" name="genderMode" value="female">
+          <label for="genderFemale">Female</label>
+          <input id="genderBoth" type="radio" name="genderMode" value="both" checked>
+          <label for="genderBoth">Both</label>
         </div>
       </div>
 
@@ -73,7 +65,7 @@
           <h2 id="badTitle">Bad names</h2>
           <span id="badCount" class="count-chip bad">0</span>
         </div>
-        <p class="panel-note">Swiped left</p>
+        <p class="panel-note">Swiped left. Click name to move right.</p>
         <p id="badEmpty" class="panel-empty">No names here yet.</p>
         <ul id="badList" class="pick-list" aria-live="polite"></ul>
       </aside>
@@ -105,7 +97,7 @@
           <h2 id="goodTitle">Good names</h2>
           <span id="goodCount" class="count-chip good">0</span>
         </div>
-        <p class="panel-note">Swiped right</p>
+        <p class="panel-note">Swiped right. Click name to move left.</p>
         <p id="goodEmpty" class="panel-empty">No names here yet.</p>
         <ul id="goodList" class="pick-list" aria-live="polite"></ul>
       </aside>
