@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KazPER Name Picker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <p class="eyebrow">KazPER</p>
+      <h1>Child Name Picker</h1>
+      <p class="hero-copy">Sort names fast: left for bad, right for good.</p>
+    </header>
+
+    <section id="errorBanner" class="banner banner-error hidden" role="alert">
+      <p id="errorText">Could not load the name list.</p>
+      <button id="retryLoadBtn" type="button" class="btn btn-secondary">Retry load</button>
+    </section>
+
+    <section id="loadWarning" class="banner banner-warning hidden" role="status"></section>
+
+    <section class="toolbar" aria-label="Filters and actions">
+      <div class="toolbar-block">
+        <p class="block-title">Gender</p>
+        <div class="check-row">
+          <label class="check-pill">
+            <input id="genderM" type="checkbox" value="M" checked>
+            <span>Male (M)</span>
+          </label>
+          <label class="check-pill">
+            <input id="genderF" type="checkbox" value="F" checked>
+            <span>Female (F)</span>
+          </label>
+          <label class="check-pill">
+            <input id="genderB" type="checkbox" value="B" checked>
+            <span>Both (B)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="toolbar-block">
+        <p class="block-title">Format</p>
+        <div class="segment-control" role="radiogroup" aria-label="Name format">
+          <input id="localeRu" type="radio" name="locale" value="ru" checked>
+          <label for="localeRu">RU</label>
+          <input id="localeKk" type="radio" name="locale" value="kk">
+          <label for="localeKk">KK</label>
+          <input id="localeEn" type="radio" name="locale" value="en">
+          <label for="localeEn">EN</label>
+        </div>
+      </div>
+
+      <div class="toolbar-block actions">
+        <p class="block-title">Actions</p>
+        <div class="action-row">
+          <button id="btnUndo" type="button" class="btn btn-secondary">Undo</button>
+          <button id="btnRestart" type="button" class="btn btn-secondary">Restart deck</button>
+          <button id="btnExportCsv" type="button" class="btn btn-secondary">Export CSV</button>
+          <button id="btnExportJson" type="button" class="btn btn-secondary">Export JSON</button>
+          <button id="btnReset" type="button" class="btn btn-danger">Reset all</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel panel-bad" aria-labelledby="badTitle">
+        <div class="panel-header">
+          <h2 id="badTitle">Bad names</h2>
+          <span id="badCount" class="count-chip bad">0</span>
+        </div>
+        <p class="panel-note">Swiped left</p>
+        <p id="badEmpty" class="panel-empty">No names here yet.</p>
+        <ul id="badList" class="pick-list" aria-live="polite"></ul>
+      </aside>
+
+      <section class="panel panel-center" aria-labelledby="centerTitle">
+        <div class="panel-header center">
+          <h2 id="centerTitle">Pick names</h2>
+          <span id="deckProgress" class="count-chip neutral">0 / 0</span>
+        </div>
+
+        <div id="cardStage" class="card-stage">
+          <article id="nameCard" class="name-card" aria-live="polite">
+            <p id="cardTag" class="card-tag">Loading</p>
+            <h3 id="cardName" class="card-name">Loading names...</h3>
+            <p id="cardMeta" class="card-meta">Please wait while the CSV file is parsed.</p>
+          </article>
+        </div>
+
+        <div id="cardNotice" class="card-notice" role="status"></div>
+
+        <div class="swipe-controls">
+          <button id="btnBad" type="button" class="btn-swipe bad" aria-label="Send current name to bad list">Left</button>
+          <button id="btnGood" type="button" class="btn-swipe good" aria-label="Send current name to good list">Right</button>
+        </div>
+      </section>
+
+      <aside class="panel panel-good" aria-labelledby="goodTitle">
+        <div class="panel-header">
+          <h2 id="goodTitle">Good names</h2>
+          <span id="goodCount" class="count-chip good">0</span>
+        </div>
+        <p class="panel-note">Swiped right</p>
+        <p id="goodEmpty" class="panel-empty">No names here yet.</p>
+        <ul id="goodList" class="pick-list" aria-live="polite"></ul>
+      </aside>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
