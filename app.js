@@ -580,6 +580,7 @@ function renderList(listElement, emptyElement, idSet, bucket) {
       entries.push(entry);
     }
   });
+  entries.reverse();
 
   if (entries.length === 0) {
     emptyElement.classList.remove("hidden");
